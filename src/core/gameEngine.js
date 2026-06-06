@@ -88,11 +88,21 @@ function prepareNextTarget(session) {
   };
 }
 
-export function createSession(layoutId) {
+function resolveStartLevelIndex(startLevelId) {
+  if (!startLevelId) {
+    return 0;
+  }
+
+  const index = LEVELS.findIndex((level) => level.id === startLevelId);
+  return index >= 0 ? index : 0;
+}
+
+export function createSession(layoutId, options = {}) {
+  const startLevelIndex = resolveStartLevelIndex(options.startLevelId);
   return prepareNextTarget({
     layoutId,
     startedAt: new Date().toISOString(),
-    levelIndex: 0,
+    levelIndex: startLevelIndex,
     levelAttempts: 0,
     levelCorrect: 0,
     overallAttempts: 0,

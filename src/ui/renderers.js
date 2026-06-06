@@ -35,6 +35,7 @@ function renderMenu(state) {
       </div>
       <div class="actions">
         <button class="button primary" data-action="start-game">Starta spel</button>
+        <button class="button" data-action="start-blank-game">Starta tomt tangentbord</button>
       </div>
       <section>
         <h3>Senaste rundor</h3>

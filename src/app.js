@@ -22,9 +22,11 @@ function buildStoredResult(summary) {
   };
 }
 
-function startGame() {
+function startGame(mode = "standard") {
   const state = store.getState();
-  const session = createSession(state.selectedLayoutId);
+  const session = mode === "blank"
+    ? createSession(state.selectedLayoutId, { startLevelId: "blank-keyboard" })
+    : createSession(state.selectedLayoutId);
   store.dispatch({
     type: ACTIONS.START_GAME,
     payload: { session },
@@ -113,6 +115,11 @@ function attachUiActions() {
     const action = actionElement.getAttribute("data-action");
     if (action === "start-game" || action === "play-again") {
       startGame();
+      return;
+    }
+
+    if (action === "start-blank-game") {
+      startGame("blank");
       return;
     }
 
