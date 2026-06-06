@@ -7,6 +7,7 @@ export const initialState = {
   feedback: null,
   summary: null,
   history: [],
+  showTip: false,
 };
 
 export function reducer(state, action) {
@@ -30,6 +31,7 @@ export function reducer(state, action) {
         session: action.payload.session,
         summary: null,
         feedback: null,
+        showTip: false,
       };
 
     case ACTIONS.SUBMIT_ANSWER:
@@ -47,6 +49,7 @@ export function reducer(state, action) {
         session: null,
         feedback: null,
         history: action.payload.history,
+        showTip: false,
       };
 
     case ACTIONS.RESET_GAME:
@@ -56,6 +59,13 @@ export function reducer(state, action) {
         session: null,
         feedback: null,
         summary: null,
+        showTip: false,
+      };
+
+    case ACTIONS.TOGGLE_TIP:
+      return {
+        ...state,
+        showTip: !state.showTip,
       };
 
     default:

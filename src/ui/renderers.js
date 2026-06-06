@@ -48,13 +48,14 @@ function renderMenu(state) {
 function renderKeyboard(layout, targetCode, options = {}) {
   const filledCodes = options.filledCodes || [];
   const hideLabels = Boolean(options.hideLabels);
+  const showTip = Boolean(options.showTip);
 
   const rows = layout.rows
     .map((row) => {
       const keys = row
         .map((code) => {
           const widthClass = code === "Space" ? "space" : ["Backspace", "Tab", "CapsLock", "Enter", "ShiftLeft", "ShiftRight"].includes(code) ? "wide" : "";
-          const targetClass = code === targetCode ? "target" : "";
+          const targetClass = showTip && code === targetCode ? "target" : "";
           const isFilled = filledCodes.includes(code);
           const fillClass = hideLabels ? (isFilled ? "filled" : "empty") : "";
           const label = hideLabels && !isFilled ? "?" : getKeyLabel(layout, code);
@@ -82,6 +83,9 @@ function renderGame(state) {
   const keyboardHelpText = isBlankKeyboardLevel
     ? "Tangenterna ar dolda. Klicka pa platsen dar tangenten hor hemma."
     : "Du kan anvanda fysiskt tangentbord eller trycka direkt pa tangenterna.";
+  const tipText = state.showTip
+    ? "Tips aktivt: ratt position markeras pa tangentbordet."
+    : "Tips av: ingen markering visas automatiskt.";
 
   return `
     <section class="game-grid">
@@ -111,15 +115,18 @@ function renderGame(state) {
         </div>
         <div class="${getFeedbackClass(state.feedback)}">${feedbackText}</div>
         <div class="actions">
+          <button class="button" data-action="toggle-tip">${state.showTip ? "Dolj tips" : "Visa tips"}</button>
           <button class="button" data-action="back-to-menu">Avsluta runda</button>
         </div>
       </section>
       <section class="panel">
         <h3>Virtuellt tangentbord (${layout.title})</h3>
         <p>${keyboardHelpText}</p>
+        <p>${tipText}</p>
         ${renderKeyboard(layout, session.currentTargetCode, {
           hideLabels: isBlankKeyboardLevel,
           filledCodes: session.filledCodes,
+          showTip: state.showTip,
         })}
       </section>
     </section>

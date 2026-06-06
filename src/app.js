@@ -123,6 +123,11 @@ function attachUiActions() {
       return;
     }
 
+    if (action === "toggle-tip") {
+      store.dispatch({ type: ACTIONS.TOGGLE_TIP });
+      return;
+    }
+
     if (action === "back-to-menu") {
       store.dispatch({ type: ACTIONS.RESET_GAME });
       return;
