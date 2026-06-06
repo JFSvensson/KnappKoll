@@ -186,6 +186,17 @@ body {
   border-color: var(--target-border);
 }
 
+.key.empty {
+  background: #edf3f8;
+  color: #7d95a7;
+  border-style: dashed;
+}
+
+.key.filled {
+  background: #e8f5ee;
+  border-color: #8bc9a8;
+}
+
 .actions {
   display: flex;
   gap: 0.55rem;

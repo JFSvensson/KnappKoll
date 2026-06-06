@@ -60,12 +60,22 @@ function submitAnswer(code) {
 
   const previousLevel = getCurrentLevel(state.session);
   const result = evaluateAnswer(state.session, code);
+  const isBlankKeyboardLevel = previousLevel.mode === "blank-map";
 
   let feedback;
   if (!result.outcome.levelCompleted) {
-    feedback = result.outcome.isCorrect
-      ? { kind: "ok", text: "Ratt tangent!" }
-      : { kind: "bad", text: "Fel tangent, forsok igen." };
+    if (isBlankKeyboardLevel) {
+      feedback = result.outcome.isCorrect
+        ? {
+            kind: "ok",
+            text: `Ratt plats! ${result.outcome.filledCount}/${result.outcome.totalToFill} ifyllda.`,
+          }
+        : { kind: "bad", text: "Fel plats, forsok igen." };
+    } else {
+      feedback = result.outcome.isCorrect
+        ? { kind: "ok", text: "Ratt tangent!" }
+        : { kind: "bad", text: "Fel tangent, forsok igen." };
+    }
   } else if (result.outcome.levelPassed) {
     feedback = {
       kind: "ok",

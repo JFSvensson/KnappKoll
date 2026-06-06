@@ -44,15 +44,20 @@ function renderMenu(state) {
   `;
 }
 
-function renderKeyboard(layout, targetCode) {
+function renderKeyboard(layout, targetCode, options = {}) {
+  const filledCodes = options.filledCodes || [];
+  const hideLabels = Boolean(options.hideLabels);
+
   const rows = layout.rows
     .map((row) => {
       const keys = row
         .map((code) => {
           const widthClass = code === "Space" ? "space" : ["Backspace", "Tab", "CapsLock", "Enter", "ShiftLeft", "ShiftRight"].includes(code) ? "wide" : "";
           const targetClass = code === targetCode ? "target" : "";
-          const label = getKeyLabel(layout, code);
-          return `<button class="key ${widthClass} ${targetClass}" data-action="virtual-key" data-code="${code}">${label}</button>`;
+          const isFilled = filledCodes.includes(code);
+          const fillClass = hideLabels ? (isFilled ? "filled" : "empty") : "";
+          const label = hideLabels && !isFilled ? "?" : getKeyLabel(layout, code);
+          return `<button class="key ${widthClass} ${targetClass} ${fillClass}" data-action="virtual-key" data-code="${code}">${label}</button>`;
         })
         .join("");
       return `<div class="keyboard-row">${keys}</div>`;
@@ -68,6 +73,14 @@ function renderGame(state) {
   const levels = getLevels();
   const layout = getLayout(session.layoutId);
   const feedbackText = state.feedback ? state.feedback.text : "Vanta pa ditt nasta svar";
+  const isBlankKeyboardLevel = level.mode === "blank-map";
+  const progressText = isBlankKeyboardLevel
+    ? `${session.filledCodes.length}/${level.keyCodes.length}`
+    : `${session.levelAttempts}/${level.questionsPerLevel}`;
+  const targetHeading = isBlankKeyboardLevel ? "Placera tangent pa ratt plats:" : "Hitta tangent:";
+  const keyboardHelpText = isBlankKeyboardLevel
+    ? "Tangenterna ar dolda. Klicka pa platsen dar tangenten hor hemma."
+    : "Du kan anvanda fysiskt tangentbord eller trycka direkt pa tangenterna.";
 
   return `
     <section class="game-grid">
@@ -75,8 +88,8 @@ function renderGame(state) {
         <h2>${level.title}</h2>
         <div class="hud">
           <article class="hud-card">
-            <strong>Forsok i niva</strong>
-            <div>${session.levelAttempts}/${level.questionsPerLevel}</div>
+            <strong>${isBlankKeyboardLevel ? "Placerade" : "Forsok i niva"}</strong>
+            <div>${progressText}</div>
           </article>
           <article class="hud-card">
             <strong>Ratt i niva</strong>
@@ -92,7 +105,7 @@ function renderGame(state) {
           </article>
         </div>
         <div class="target-box">
-          <div>Hitta tangent:</div>
+          <div>${targetHeading}</div>
           <div class="target-label">${getKeyLabel(layout, session.currentTargetCode)}</div>
         </div>
         <div class="${getFeedbackClass(state.feedback)}">${feedbackText}</div>
@@ -102,8 +115,11 @@ function renderGame(state) {
       </section>
       <section class="panel">
         <h3>Virtuellt tangentbord (${layout.title})</h3>
-        <p>Du kan anvanda fysiskt tangentbord eller trycka direkt pa tangenterna.</p>
-        ${renderKeyboard(layout, session.currentTargetCode)}
+        <p>${keyboardHelpText}</p>
+        ${renderKeyboard(layout, session.currentTargetCode, {
+          hideLabels: isBlankKeyboardLevel,
+          filledCodes: session.filledCodes,
+        })}
       </section>
     </section>
   `;

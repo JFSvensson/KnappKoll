@@ -4,55 +4,87 @@ const LEVELS = [
     title: "Niva 1: Hemrad",
     keyCodes: ["KeyA", "KeyS", "KeyD", "KeyF", "KeyJ", "KeyK", "KeyL", "Semicolon"],
     questionsPerLevel: 10,
-    passAccuracy: 0.7
+    passAccuracy: 0.7,
+    mode: "classic"
   },
   {
     id: "top-row",
     title: "Niva 2: Ovre rad",
     keyCodes: ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP"],
     questionsPerLevel: 10,
-    passAccuracy: 0.75
+    passAccuracy: 0.75,
+    mode: "classic"
   },
   {
     id: "bottom-row",
     title: "Niva 3: Nedre rad",
     keyCodes: ["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"],
     questionsPerLevel: 10,
-    passAccuracy: 0.75
+    passAccuracy: 0.75,
+    mode: "classic"
   },
   {
     id: "numbers-and-symbols",
     title: "Niva 4: Siffror och symboler",
     keyCodes: ["Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"],
     questionsPerLevel: 12,
-    passAccuracy: 0.8
+    passAccuracy: 0.8,
+    mode: "classic"
+  },
+  {
+    id: "blank-keyboard",
+    title: "Niva 5: Tomt tangentbord",
+    keyCodes: [
+      "KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP",
+      "KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL",
+      "KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM",
+      "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0",
+      "Minus", "Equal", "Semicolon", "Quote", "Comma", "Period", "Slash", "BracketLeft", "BracketRight"
+    ],
+    questionsPerLevel: 45,
+    passAccuracy: 1,
+    mode: "blank-map"
   }
 ];
 
 function cloneSession(session) {
   return {
     ...session,
-    passedLevels: session.passedLevels.map((level) => ({ ...level }))
+    passedLevels: session.passedLevels.map((level) => ({ ...level })),
+    filledCodes: [...session.filledCodes]
   };
 }
 
-function randomCodeFromLevel(level, previousCode) {
-  if (level.keyCodes.length === 1) {
-    return level.keyCodes[0];
+function getTargetPool(level, session) {
+  if (level.mode !== "blank-map") {
+    return level.keyCodes;
   }
 
-  let candidate = level.keyCodes[Math.floor(Math.random() * level.keyCodes.length)];
+  return level.keyCodes.filter((code) => !session.filledCodes.includes(code));
+}
+
+function randomCodeFromPool(pool, previousCode) {
+  if (pool.length === 0) {
+    return null;
+  }
+
+  if (pool.length === 1) {
+    return pool[0];
+  }
+
+  let candidate = pool[Math.floor(Math.random() * pool.length)];
   while (candidate === previousCode) {
-    candidate = level.keyCodes[Math.floor(Math.random() * level.keyCodes.length)];
+    candidate = pool[Math.floor(Math.random() * pool.length)];
   }
   return candidate;
 }
 
 function prepareNextTarget(session) {
   const level = LEVELS[session.levelIndex];
+  const targetPool = getTargetPool(level, session);
   return {
     ...session,
-    currentTargetCode: randomCodeFromLevel(level, session.currentTargetCode)
+    currentTargetCode: randomCodeFromPool(targetPool, session.currentTargetCode)
   };
 }
 
@@ -66,7 +98,8 @@ export function createSession(layoutId) {
     overallAttempts: 0,
     overallCorrect: 0,
     currentTargetCode: null,
-    passedLevels: []
+    passedLevels: [],
+    filledCodes: []
   });
 }
 
@@ -77,17 +110,26 @@ export function getLevels() {
 export function evaluateAnswer(session, answerCode) {
   const current = cloneSession(session);
   const level = LEVELS[current.levelIndex];
+  const isBlankKeyboardLevel = level.mode === "blank-map";
 
   const isCorrect = answerCode === current.currentTargetCode;
   current.levelAttempts += 1;
   current.overallAttempts += 1;
 
+  let wasNewPlacement = false;
   if (isCorrect) {
     current.levelCorrect += 1;
     current.overallCorrect += 1;
+
+    if (isBlankKeyboardLevel && !current.filledCodes.includes(answerCode)) {
+      current.filledCodes.push(answerCode);
+      wasNewPlacement = true;
+    }
   }
 
-  const levelCompleted = current.levelAttempts >= level.questionsPerLevel;
+  const levelCompleted = isBlankKeyboardLevel
+    ? current.filledCodes.length >= level.keyCodes.length
+    : current.levelAttempts >= level.questionsPerLevel;
   const levelAccuracy = current.levelAttempts === 0 ? 0 : current.levelCorrect / current.levelAttempts;
 
   if (!levelCompleted) {
@@ -95,22 +137,27 @@ export function evaluateAnswer(session, answerCode) {
       session: prepareNextTarget(current),
       outcome: {
         isCorrect,
+        wasNewPlacement,
         levelCompleted: false,
         levelPassed: false,
         gameCompleted: false,
-        levelAccuracy
+        levelAccuracy,
+        levelMode: level.mode,
+        filledCount: current.filledCodes.length,
+        totalToFill: level.keyCodes.length
       }
     };
   }
 
-  const levelPassed = levelAccuracy >= level.passAccuracy;
+  const levelPassed = isBlankKeyboardLevel ? true : levelAccuracy >= level.passAccuracy;
   if (levelPassed) {
     current.passedLevels.push({
       levelId: level.id,
       title: level.title,
       attempts: current.levelAttempts,
       correct: current.levelCorrect,
-      accuracy: levelAccuracy
+      accuracy: levelAccuracy,
+      mode: level.mode
     });
 
     const isFinalLevel = current.levelIndex === LEVELS.length - 1;
@@ -122,10 +169,14 @@ export function evaluateAnswer(session, answerCode) {
         },
         outcome: {
           isCorrect,
+          wasNewPlacement,
           levelCompleted: true,
           levelPassed: true,
           gameCompleted: true,
-          levelAccuracy
+          levelAccuracy,
+          levelMode: level.mode,
+          filledCount: current.filledCodes.length,
+          totalToFill: level.keyCodes.length
         }
       };
     }
@@ -135,17 +186,22 @@ export function evaluateAnswer(session, answerCode) {
       levelIndex: current.levelIndex + 1,
       levelAttempts: 0,
       levelCorrect: 0,
-      currentTargetCode: null
+      currentTargetCode: null,
+      filledCodes: []
     };
 
     return {
       session: prepareNextTarget(leveledUp),
       outcome: {
         isCorrect,
+        wasNewPlacement,
         levelCompleted: true,
         levelPassed: true,
         gameCompleted: false,
-        levelAccuracy
+        levelAccuracy,
+        levelMode: level.mode,
+        filledCount: current.filledCodes.length,
+        totalToFill: level.keyCodes.length
       }
     };
   }
@@ -154,17 +210,22 @@ export function evaluateAnswer(session, answerCode) {
     ...current,
     levelAttempts: 0,
     levelCorrect: 0,
-    currentTargetCode: null
+    currentTargetCode: null,
+    filledCodes: []
   };
 
   return {
     session: prepareNextTarget(retryLevel),
     outcome: {
       isCorrect,
+      wasNewPlacement,
       levelCompleted: true,
       levelPassed: false,
       gameCompleted: false,
-      levelAccuracy
+      levelAccuracy,
+      levelMode: level.mode,
+      filledCount: current.filledCodes.length,
+      totalToFill: level.keyCodes.length
     }
   };
 }
